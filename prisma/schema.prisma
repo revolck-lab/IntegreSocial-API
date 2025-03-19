@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  subdomain      String        @unique
+  status         TenantStatus  @default(ACTIVE)
+  planId         String        @map("plan_id") @db.Uuid
+  plan           Plan          @relation(fields: [planId], references: [id])
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  userTenants    UserTenant[]
+
+  @@map("tenants")
+  @@index([subdomain])
+}
+
+model User {
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique
+  hashedPassword  String        @map("hashed_password")
+  status          UserStatus    @default(ACTIVE)
+  lastLogin       DateTime?     @map("last_login")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  userTenants     UserTenant[]
+  userSessions    UserSession[]
+
+  @@map("users")
+  @@index([email])
+}
+
+model UserTenant {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, tenantId])
+  @@map("user_tenants")
+  @@index([userId])
+  @@index([tenantId])
+}
+
+model UserSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  ipAddress   String?   @map("ip_address")
+  deviceInfo  String?   @map("device_info")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Role {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  isSystemRole  Boolean      @default(false) @map("is_system_role")
+  userTenants   UserTenant[]
+
+  @@map("roles")
+}
+
+model Plan {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              String
+  maxProjects       Int        @map("max_projects")
+  maxUsers          Int        @map("max_users")
+  maxBeneficiaries  Int        @map("max_beneficiaries")
+  availableModules  Json       @map("available_modules")
+  price             Decimal    @db.Decimal(10, 2)
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  tenants           Tenant[]
+
+  @@map("plans")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+  CANCELLED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BLOCKED
+}
