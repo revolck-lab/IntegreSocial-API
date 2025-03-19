@@ -25,7 +25,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "check:format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"prisma/**/*.ts\"",
     "check:lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -49,6 +49,8 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
@@ -118,6 +120,15 @@
       "bcrypt",
       "esbuild",
       "prisma"
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "prettier --write",
+      "eslint --fix --config eslint.config.mjs"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
     ]
   }
 }
